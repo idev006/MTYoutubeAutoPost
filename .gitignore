@@ -1,0 +1,53 @@
+# Python runtime files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+*.manifest
+*.spec
+
+# Virtual environment
+Include/
+Lib/
+Scripts/
+pyvenv.cfg
+.venv/
+venv/
+ENV/
+
+# Video files
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+data/logs/
+
+# Database
+data/db/*.db
+
+# Secrets (keep sample, ignore real)
+data/config/client_secrets.json
+data/config/youtube_token.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Byte-compiled files
+*.pyc

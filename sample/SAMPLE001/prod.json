@@ -1,0 +1,44 @@
+{
+    "schema_version": "1.0",
+    "prod_detail": {
+        "prod_code": "SAMPLE001",
+        "prod_name": "รองเท้าวิ่ง Nike Air Max",
+        "prod_short_descr": "สวมใส่สบาย น้ำหนักเบา",
+        "prod_long_descr": "รองเท้าวิ่ง Nike Air Max รุ่นใหม่ล่าสุด\n\n🔥 คุณสมบัติเด่น:\n- น้ำหนักเบา ใส่สบาย\n- พื้นรองเท้านุ่มพิเศษ\n- ระบายอากาศได้ดี\n- เหมาะสำหรับวิ่ง และออกกำลังกาย",
+        "prod_tags": [
+            "รองเท้าวิ่ง",
+            "Nike",
+            "Air Max",
+            "กีฬา",
+            "Shopee"
+        ],
+        "category_id": 22,
+        "privacy": "unlisted"
+    },
+    "playlist": {
+        "playlist_id": null,
+        "playlist_name": "รองเท้ากีฬา",
+        "create_if_not_exists": true
+    },
+    "aff_detail": {
+        "platform": "shopee",
+        "urls_list": [
+            {
+                "label": "🛒 สั่งซื้อที่ Shopee",
+                "url": "https://s.shopee.co.th/xxxxx",
+                "is_primary": true
+            },
+            {
+                "label": "📦 ดูสินค้าอื่นๆ ในร้าน",
+                "url": "https://s.shopee.co.th/store/xxxxx",
+                "is_primary": false
+            }
+        ],
+        "discount_code": "SAVE10"
+    },
+    "upload_config": {
+        "made_for_kids": false,
+        "notify_subscribers": true,
+        "embeddable": true
+    }
+}

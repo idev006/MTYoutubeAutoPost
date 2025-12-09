@@ -1,0 +1,38 @@
+{
+    "schema_version": "1.0",
+    "prod_detail": {
+        "prod_code": "JILWINK001",
+        "prod_name": "Jil Wink",
+        "prod_short_descr": "สินค้าคุณภาพ",
+        "prod_long_descr": "Jil Wink สินค้าคุณภาพดี\n\n🔥 คุณสมบัติเด่น:\n- คุณภาพสูง\n- ราคาคุ้มค่า\n- จัดส่งรวดเร็ว",
+        "prod_tags": [
+            "Jil Wink",
+            "สินค้าคุณภาพ",
+            "Shopee",
+            "ขายดี"
+        ],
+        "category_id": 22,
+        "privacy": "unlisted"
+    },
+    "playlist": {
+        "playlist_id": null,
+        "playlist_name": "Jil Wink Collection",
+        "create_if_not_exists": true
+    },
+    "aff_detail": {
+        "platform": "shopee",
+        "urls_list": [
+            {
+                "label": "🛒 สั่งซื้อที่ Shopee",
+                "url": "https://s.shopee.co.th/xxxxxwww",
+                "is_primary": true
+            }
+        ],
+        "discount_code": null
+    },
+    "upload_config": {
+        "made_for_kids": false,
+        "notify_subscribers": true,
+        "embeddable": true
+    }
+}
