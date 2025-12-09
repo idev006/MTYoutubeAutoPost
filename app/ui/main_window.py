@@ -378,19 +378,35 @@ class MainWindow(QMainWindow):
         self._orchestrator.task_status_changed.connect(self._on_task_status_changed)
     
     def _load_state(self):
-        """Load saved state"""
-        # Check for resumable session
+        """Load saved state including folders and session"""
+        # Restore selected folders from last session
+        saved_folders = config.get_ui('selected_folders', [])
+        if saved_folders:
+            reply = QMessageBox.question(
+                self,
+                "Restore Folders",
+                f"Found {len(saved_folders)} folder(s) from last session.\nDo you want to restore them?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                for folder in saved_folders:
+                    if Path(folder).exists():
+                        self._add_folder(folder)
+                self._log(f"Restored {len(self._selected_folders)} folders from last session")
+        
+        # Check for resumable session (incomplete uploads)
         session_id = self._orchestrator.check_resumable_session()
         if session_id:
             reply = QMessageBox.question(
                 self,
-                "Resume Session",
-                f"Found incomplete session. Do you want to resume?",
+                "Resume Upload Session",
+                f"Found incomplete upload session.\nDo you want to resume uploading?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             if reply == QMessageBox.StandardButton.Yes:
                 self._orchestrator.resume_from_crash()
                 self._update_task_table()
+                self._log("Resumed incomplete upload session")
     
     def _restore_window_state(self):
         """Restore window size and position"""
@@ -402,10 +418,14 @@ class MainWindow(QMainWindow):
             self.showMaximized()
     
     def _save_window_state(self):
-        """Save window size and position"""
+        """Save window size, position, and selected folders"""
         config.set_ui('window.width', self.width())
         config.set_ui('window.height', self.height())
         config.set_ui('window.maximized', self.isMaximized())
+        
+        # Save selected folders for next session
+        config.set_ui('selected_folders', self._selected_folders)
+        self._log(f"Saved state: {len(self._selected_folders)} folders")
     
     # ========================================
     # SLOT HANDLERS
@@ -447,6 +467,9 @@ class MainWindow(QMainWindow):
             self._log(f"Invalid folder: {Path(folder).name} - {errors}")
         
         self._update_folder_count()
+        
+        # Auto-save folders
+        config.set_ui('selected_folders', self._selected_folders)
     
     @Slot()
     def _on_add_folder(self):
