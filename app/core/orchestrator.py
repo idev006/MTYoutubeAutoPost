@@ -5,6 +5,7 @@ Handles start/pause/stop/resume operations
 """
 
 import uuid
+import random
 from typing import Optional
 from PySide6.QtCore import QObject, Signal
 from loguru import logger
@@ -55,6 +56,7 @@ class Orchestrator(QObject):
         self._tasks: list[VideoTask] = []
         self._is_running = False
         self._is_paused = False
+        self._shuffle_tasks = True  # Shuffle tasks for anti-spam
         
         # Connect worker manager signals
         self._worker_manager.task_completed.connect(self._on_task_completed)
@@ -87,6 +89,11 @@ class Orchestrator(QObject):
     def set_delay_range(self, from_ss: int, to_ss: int):
         """Set random delay range"""
         self._worker_manager.set_delay_range(from_ss, to_ss)
+    
+    def set_shuffle_tasks(self, enabled: bool):
+        """Enable/disable task shuffling for anti-spam"""
+        self._shuffle_tasks = enabled
+        logger.info(f"Task shuffle: {'enabled' if enabled else 'disabled'}")
     
     # ========================================
     # FOLDER PROCESSING
@@ -135,6 +142,14 @@ class Orchestrator(QObject):
                 
                 # Save initial state
                 StateManager.save_task_state(task)
+        
+        # Shuffle tasks for anti-spam (after ep/title assigned)
+        if self._shuffle_tasks and len(self._tasks) > 1:
+            original_order = [f"{t.prod_code} ep.{t.episode}" for t in self._tasks[:3]]
+            random.shuffle(self._tasks)
+            new_order = [f"{t.prod_code} ep.{t.episode}" for t in self._tasks[:3]]
+            logger.info(f"Shuffled {len(self._tasks)} tasks for anti-spam")
+            logger.debug(f"Order changed: {original_order} -> {new_order}")
         
         logger.info(f"Prepared {len(self._tasks)} tasks from {len(valid_folders)} folders")
         return self._tasks
