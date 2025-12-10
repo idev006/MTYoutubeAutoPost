@@ -221,6 +221,12 @@ class MainWindow(QMainWindow):
         delay_to_layout.addWidget(self.spin_delay_to)
         settings_layout.addLayout(delay_to_layout)
         
+        # Skip duplicate check checkbox
+        self.chk_skip_dup = QCheckBox("Skip Duplicate Check (save quota)")
+        self.chk_skip_dup.setChecked(False)
+        self.chk_skip_dup.stateChanged.connect(self._on_skip_dup_changed)
+        settings_layout.addWidget(self.chk_skip_dup)
+        
         layout.addWidget(settings_group)
         
         # ====== Control buttons ======
@@ -607,6 +613,13 @@ class MainWindow(QMainWindow):
         config.delay_range = (from_ss, to_ss)
         self._orchestrator.set_delay_range(from_ss, to_ss)
         self._log(f"Delay range: {from_ss}-{to_ss}s")
+    
+    @Slot(int)
+    def _on_skip_dup_changed(self, state: int):
+        """Handle skip duplicate check changed"""
+        skip = state == 2  # Qt.Checked = 2
+        self._orchestrator.set_skip_duplicate_check(skip)
+        self._log(f"Skip duplicate check: {'ON' if skip else 'OFF'}")
     
     @Slot()
     def _on_session_started(self):

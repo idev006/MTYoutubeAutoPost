@@ -57,6 +57,7 @@ class Orchestrator(QObject):
         self._is_running = False
         self._is_paused = False
         self._shuffle_tasks = True  # Shuffle tasks for anti-spam
+        self._skip_duplicate_check = False  # Skip duplicate check to save quota
         
         # Connect worker manager signals
         self._worker_manager.task_completed.connect(self._on_task_completed)
@@ -95,6 +96,11 @@ class Orchestrator(QObject):
         self._shuffle_tasks = enabled
         logger.info(f"Task shuffle: {'enabled' if enabled else 'disabled'}")
     
+    def set_skip_duplicate_check(self, skip: bool):
+        """Enable/disable duplicate checking (skip to save quota)"""
+        self._skip_duplicate_check = skip
+        logger.info(f"Skip duplicate check: {'enabled' if skip else 'disabled'}")
+    
     # ========================================
     # FOLDER PROCESSING
     # ========================================
@@ -125,18 +131,23 @@ class Orchestrator(QObject):
         for folder in valid_folders:
             tasks = ProdJsonParser.build_video_tasks(folder, self._session_id)
             
-            # Check for duplicates and set action
+            # Check for duplicates and set action (skip if flag set)
             for task in tasks:
-                result = DuplicateChecker.check_duplicate(task.prod_code, task.episode)
-                
-                if result.exists:
-                    task.action = "update"
-                    task.existing_video_id = result.youtube_video_id
-                    task.youtube_url = result.youtube_url
-                    logger.info(f"Duplicate found: {task.prod_code} ep.{task.episode} -> Update")
-                else:
+                if self._skip_duplicate_check:
+                    # Skip duplicate check - assume all uploads
                     task.action = "upload"
-                    logger.info(f"New video: {task.prod_code} ep.{task.episode} -> Upload")
+                    logger.info(f"New video (skip dup check): {task.prod_code} ep.{task.episode} -> Upload")
+                else:
+                    result = DuplicateChecker.check_duplicate(task.prod_code, task.episode)
+                    
+                    if result.exists:
+                        task.action = "update"
+                        task.existing_video_id = result.youtube_video_id
+                        task.youtube_url = result.youtube_url
+                        logger.info(f"Duplicate found: {task.prod_code} ep.{task.episode} -> Update")
+                    else:
+                        task.action = "upload"
+                        logger.info(f"New video: {task.prod_code} ep.{task.episode} -> Upload")
                 
                 self._tasks.append(task)
                 

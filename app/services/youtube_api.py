@@ -20,7 +20,7 @@ from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
 from loguru import logger
 
-from app.config import config
+from app.config import config, CONFIG_DIR
 from app.services.api_key_manager import api_key_manager
 
 
@@ -68,7 +68,7 @@ class YouTubeAPIService:
     
     def _get_token_path_for_key(self, key_name: str) -> Path:
         """Get token path for specific key"""
-        return config.CONFIG_DIR / f"token_{key_name}.pkl"
+        return CONFIG_DIR / f"token_{key_name}.pkl"
     
     def _get_current_client_secrets_path(self) -> Optional[Path]:
         """Get current client secrets path from key manager"""

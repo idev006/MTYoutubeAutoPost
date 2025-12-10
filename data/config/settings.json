@@ -5,12 +5,14 @@
     "language": "th"
   },
   "upload": {
-    "worker_count": 2,
+    "worker_count": 1,
     "delay_from_ss": 50,
     "delay_to_ss": 200,
     "max_retries": 3,
     "default_privacy": "unlisted",
-    "default_category_id": 22
+    "default_category_id": 22,
+    "skip_duplicate_check": false,
+    "shuffle_tasks": true
   },
   "youtube": {
     "client_secrets_file": "client_secrets.json",
