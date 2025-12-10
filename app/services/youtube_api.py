@@ -1,7 +1,7 @@
 """
 YouTube API Service
 Handles OAuth2 authentication, video upload, update, and listing
-Thread-safe implementation
+Thread-safe implementation with multi-key support
 """
 
 import os
@@ -21,6 +21,7 @@ from googleapiclient.errors import HttpError
 from loguru import logger
 
 from app.config import config
+from app.services.api_key_manager import api_key_manager
 
 
 class YouTubeAPIService:
@@ -46,23 +47,37 @@ class YouTubeAPIService:
         self._api_lock = Lock()
         self._youtube = None
         self._credentials = None
+        self._credentials_cache: dict[str, Credentials] = {}  # key_name -> credentials
+        self._current_key_name: str = None
         self._initialized = True
         
         # Paths
-        self._client_secrets_path = config.client_secrets_path
-        self._token_path = config.youtube_token_path
         self._scopes = config.youtube_scopes
         
-        logger.info("YouTubeAPIService initialized")
+        logger.info(f"YouTubeAPIService initialized with {api_key_manager.total_keys} API keys")
     
     @property
     def is_authenticated(self) -> bool:
         """Check if we have valid credentials"""
         return self._credentials is not None and self._credentials.valid
     
+    @property
+    def current_key_name(self) -> str:
+        """Get current API key name"""
+        return api_key_manager.current_key_name
+    
+    def _get_token_path_for_key(self, key_name: str) -> Path:
+        """Get token path for specific key"""
+        return config.CONFIG_DIR / f"token_{key_name}.pkl"
+    
+    def _get_current_client_secrets_path(self) -> Optional[Path]:
+        """Get current client secrets path from key manager"""
+        return api_key_manager.get_current_credentials_path()
+    
     def authenticate(self, force_refresh: bool = False) -> bool:
         """
         Authenticate with YouTube API using OAuth2
+        Uses current key from API Key Manager
         
         Args:
             force_refresh: Force re-authentication even if valid credentials exist
@@ -72,9 +87,20 @@ class YouTubeAPIService:
         """
         with self._api_lock:
             try:
-                # Try to load existing credentials
-                if not force_refresh and self._token_path.exists():
-                    with open(self._token_path, 'rb') as token:
+                key_name = api_key_manager.current_key_name
+                client_secrets_path = self._get_current_client_secrets_path()
+                token_path = self._get_token_path_for_key(key_name)
+                
+                if not client_secrets_path or not client_secrets_path.exists():
+                    logger.error(f"Client secrets not found: {client_secrets_path}")
+                    logger.error("Please ensure ytkey_*.json files exist in config folder")
+                    return False
+                
+                logger.info(f"Authenticating with key: {key_name}")
+                
+                # Try to load existing credentials for this key
+                if not force_refresh and token_path.exists():
+                    with open(token_path, 'rb') as token:
                         self._credentials = pickle.load(token)
                 
                 # Check if credentials are valid
@@ -84,31 +110,59 @@ class YouTubeAPIService:
                 
                 # If no valid credentials, start OAuth flow
                 if not self._credentials or not self._credentials.valid:
-                    if not self._client_secrets_path.exists():
-                        logger.error(f"Client secrets not found: {self._client_secrets_path}")
-                        logger.error("Please download client_secrets.json from Google Cloud Console")
-                        return False
-                    
                     logger.info("Starting OAuth2 flow...")
                     flow = InstalledAppFlow.from_client_secrets_file(
-                        str(self._client_secrets_path),
+                        str(client_secrets_path),
                         self._scopes
                     )
                     self._credentials = flow.run_local_server(port=8080)
                 
-                # Save credentials
-                self._token_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(self._token_path, 'wb') as token:
+                # Save credentials for this key
+                token_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(token_path, 'wb') as token:
                     pickle.dump(self._credentials, token)
+                
+                # Cache credentials
+                self._credentials_cache[key_name] = self._credentials
+                self._current_key_name = key_name
                 
                 # Build YouTube service
                 self._youtube = build('youtube', 'v3', credentials=self._credentials)
-                logger.info("YouTube API authentication successful")
+                logger.info(f"YouTube API authentication successful with key: {key_name}")
                 return True
                 
             except Exception as e:
                 logger.error(f"Authentication failed: {e}")
                 return False
+    
+    def switch_to_next_key(self) -> bool:
+        """
+        Switch to next available API key
+        Called when quota exceeded
+        
+        Returns:
+            True if switched successfully, False if all keys exhausted
+        """
+        if api_key_manager.mark_quota_exceeded():
+            # Re-authenticate with new key
+            self._credentials = None
+            self._youtube = None
+            return self.authenticate()
+        return False
+    
+    def _handle_quota_error(self, error: HttpError) -> bool:
+        """
+        Check if error is quota exceeded and switch key if so
+        
+        Returns:
+            True if switched to new key, False otherwise
+        """
+        if error.resp.status == 403:
+            error_content = error.content.decode('utf-8') if isinstance(error.content, bytes) else str(error.content)
+            if 'quotaExceeded' in error_content:
+                logger.warning(f"Quota exceeded for key {self.current_key_name}, switching...")
+                return self.switch_to_next_key()
+        return False
     
     def _ensure_authenticated(self):
         """Ensure we have valid credentials before API calls"""
@@ -204,6 +258,14 @@ class YouTubeAPIService:
                 
             except HttpError as e:
                 logger.error(f"Upload failed (HTTP {e.resp.status}): {e.content}")
+                # Try switching key if quota exceeded
+                if self._handle_quota_error(e):
+                    logger.info("Retrying upload with new key...")
+                    return self.upload_video(
+                        file_path, title, description, tags,
+                        category_id, privacy, made_for_kids,
+                        notify_subscribers, progress_callback
+                    )
                 return None
             except Exception as e:
                 logger.error(f"Upload failed: {e}")
@@ -281,6 +343,10 @@ class YouTubeAPIService:
                 
             except HttpError as e:
                 logger.error(f"Update failed (HTTP {e.resp.status}): {e.content}")
+                # Try switching key if quota exceeded
+                if self._handle_quota_error(e):
+                    logger.info("Retrying update with new key...")
+                    return self.update_video(video_id, title, description, tags, category_id, privacy)
                 return False
             except Exception as e:
                 logger.error(f"Update failed: {e}")

@@ -252,6 +252,11 @@ class MainWindow(QMainWindow):
         self.lbl_auth_status = QLabel("❌ Not authenticated")
         auth_layout.addWidget(self.lbl_auth_status)
         
+        # API Key status
+        self.lbl_key_status = QLabel("🔑 Keys: 0/0")
+        self.lbl_key_status.setStyleSheet("color: #666; font-size: 11px;")
+        auth_layout.addWidget(self.lbl_key_status)
+        
         self.btn_auth = QPushButton("🔓 Authenticate")
         self.btn_auth.clicked.connect(self._on_authenticate)
         auth_layout.addWidget(self.btn_auth)
@@ -259,6 +264,9 @@ class MainWindow(QMainWindow):
         self.btn_sync = QPushButton("🔄 Sync Videos")
         self.btn_sync.clicked.connect(self._on_sync_videos)
         auth_layout.addWidget(self.btn_sync)
+        
+        # Update key status on init
+        self._update_key_status()
         
         layout.addWidget(auth_group)
         
@@ -563,14 +571,15 @@ class MainWindow(QMainWindow):
     @Slot()
     def _on_authenticate(self):
         """Authenticate with YouTube"""
-        self._log("Starting YouTube authentication...")
+        self._log(f"Starting YouTube authentication with key: {youtube_api.current_key_name}")
         success = youtube_api.authenticate()
         if success:
-            self.lbl_auth_status.setText("✅ Authenticated")
-            self._log("YouTube authentication successful")
+            self.lbl_auth_status.setText(f"✅ {youtube_api.current_key_name}")
+            self._log(f"YouTube authentication successful with key: {youtube_api.current_key_name}")
         else:
             self.lbl_auth_status.setText("❌ Authentication failed")
             self._log("YouTube authentication failed")
+        self._update_key_status()
     
     @Slot()
     def _on_sync_videos(self):
@@ -692,6 +701,26 @@ class MainWindow(QMainWindow):
             
             self.task_table.setItem(i, 4, QTableWidgetItem(f"{task.progress:.1f}%"))
             self.task_table.setItem(i, 5, QTableWidgetItem(task.action))
+    
+    def _update_key_status(self):
+        """Update API key status display"""
+        from app.services.api_key_manager import api_key_manager
+        status = api_key_manager.get_status()
+        total = status['total_keys']
+        available = status['available_keys']
+        current = status['current_name']
+        
+        if total > 0:
+            self.lbl_key_status.setText(f"🔑 Keys: {available}/{total} ({current})")
+            if available == 0:
+                self.lbl_key_status.setStyleSheet("color: #f44336; font-size: 11px;")  # Red
+            elif available < total:
+                self.lbl_key_status.setStyleSheet("color: #ff9800; font-size: 11px;")  # Orange
+            else:
+                self.lbl_key_status.setStyleSheet("color: #4CAF50; font-size: 11px;")  # Green
+        else:
+            self.lbl_key_status.setText("🔑 No keys found")
+            self.lbl_key_status.setStyleSheet("color: #f44336; font-size: 11px;")
     
     def _log(self, message: str):
         """Add log message"""

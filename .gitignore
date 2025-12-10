@@ -44,6 +44,8 @@ data/db/*.db
 # Secrets (keep sample, ignore real)
 data/config/client_secrets.json
 data/config/youtube_token.json
+data/config/ytkey_*.json
+data/config/token_*.pkl
 
 # OS files
 .DS_Store

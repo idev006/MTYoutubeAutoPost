@@ -1,35 +1,35 @@
 {
-    "app": {
-        "name": "MTYoutubeAutoPost",
-        "version": "1.0.0",
-        "language": "th"
-    },
-    "upload": {
-        "worker_count": 2,
-        "delay_from_ss": 30,
-        "delay_to_ss": 120,
-        "max_retries": 3,
-        "default_privacy": "unlisted",
-        "default_category_id": 22
-    },
-    "youtube": {
-        "client_secrets_file": "client_secrets.json",
-        "token_file": "youtube_token.json",
-        "api_service_name": "youtube",
-        "api_version": "v3",
-        "scopes": [
-            "https://www.googleapis.com/auth/youtube.upload",
-            "https://www.googleapis.com/auth/youtube",
-            "https://www.googleapis.com/auth/youtube.force-ssl"
-        ]
-    },
-    "database": {
-        "path": "youtube_uploader.db"
-    },
-    "logging": {
-        "level": "INFO",
-        "format": "{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
-        "rotation": "10 MB",
-        "retention": "7 days"
-    }
+  "app": {
+    "name": "MTYoutubeAutoPost",
+    "version": "1.0.0",
+    "language": "th"
+  },
+  "upload": {
+    "worker_count": 2,
+    "delay_from_ss": 50,
+    "delay_to_ss": 200,
+    "max_retries": 3,
+    "default_privacy": "unlisted",
+    "default_category_id": 22
+  },
+  "youtube": {
+    "client_secrets_file": "client_secrets.json",
+    "token_file": "youtube_token.json",
+    "api_service_name": "youtube",
+    "api_version": "v3",
+    "scopes": [
+      "https://www.googleapis.com/auth/youtube.upload",
+      "https://www.googleapis.com/auth/youtube",
+      "https://www.googleapis.com/auth/youtube.force-ssl"
+    ]
+  },
+  "database": {
+    "path": "youtube_uploader.db"
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
+    "rotation": "10 MB",
+    "retention": "7 days"
+  }
 }
