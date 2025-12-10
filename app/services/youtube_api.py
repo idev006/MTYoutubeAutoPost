@@ -184,6 +184,7 @@ class YouTubeAPIService:
         privacy: str = "unlisted",
         made_for_kids: bool = False,
         notify_subscribers: bool = True,
+        publish_at: Optional[str] = None,  # ISO datetime for scheduled publish
         progress_callback: Callable[[float], None] = None
     ) -> Optional[dict]:
         """
@@ -198,6 +199,7 @@ class YouTubeAPIService:
             privacy: 'public', 'unlisted', or 'private'
             made_for_kids: Whether video is made for kids
             notify_subscribers: Notify subscribers on upload
+            publish_at: ISO datetime for scheduled publish (e.g. "2024-12-11T10:00:00Z")
             progress_callback: Callback for upload progress (0.0 - 100.0)
             
         Returns:
@@ -207,6 +209,12 @@ class YouTubeAPIService:
         
         with self._api_lock:
             try:
+                # For scheduled publish, privacy must be 'private'
+                actual_privacy = privacy
+                if publish_at:
+                    actual_privacy = 'private'
+                    logger.info(f"Scheduling video for: {publish_at}")
+                
                 # Prepare metadata
                 body = {
                     'snippet': {
@@ -216,11 +224,15 @@ class YouTubeAPIService:
                         'categoryId': str(category_id)
                     },
                     'status': {
-                        'privacyStatus': privacy,
+                        'privacyStatus': actual_privacy,
                         'selfDeclaredMadeForKids': made_for_kids,
                         'notifySubscribers': notify_subscribers
                     }
                 }
+                
+                # Add publishAt for scheduled videos
+                if publish_at:
+                    body['status']['publishAt'] = publish_at
                 
                 # Create media upload
                 media = MediaFileUpload(

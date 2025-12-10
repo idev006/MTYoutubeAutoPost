@@ -6,12 +6,13 @@ Builds VideoTask objects for upload queue
 
 import uuid
 from pathlib import Path
+from datetime import datetime, timedelta
 from typing import Optional
 from loguru import logger
 
 from app.models.schemas import (
     ProdJsonSchema, VideoTask, AffiliateUrl,
-    ProdDetail, AffDetail, PlaylistConfig, UploadConfig
+    ProdDetail, AffDetail, PlaylistConfig, UploadConfig, ScheduleConfig
 )
 from app.core.scanner import ScannedFolder, ScannedVideo
 
@@ -77,13 +78,16 @@ class ProdJsonParser:
             return []
         
         tasks = []
+        schedule_cfg = prod_json.schedule or ScheduleConfig()
         
-        for video in folder.videos:
+        for idx, video in enumerate(folder.videos):
             task = cls._create_video_task(
                 prod_json=prod_json,
                 video=video,
                 session_id=session_id,
-                folder_path=folder.folder_path
+                folder_path=folder.folder_path,
+                video_index=idx,
+                schedule_cfg=schedule_cfg
             )
             tasks.append(task)
         
@@ -96,7 +100,9 @@ class ProdJsonParser:
         prod_json: ProdJsonSchema,
         video: ScannedVideo,
         session_id: str,
-        folder_path: str
+        folder_path: str,
+        video_index: int = 0,
+        schedule_cfg: ScheduleConfig = None
     ) -> VideoTask:
         """Create a single VideoTask from prod.json and video info"""
         
@@ -121,6 +127,19 @@ class ProdJsonParser:
         if video.metadata:
             video_type = video.metadata.video_type
             duration = video.metadata.duration_seconds
+        
+        # Calculate scheduled publish time
+        scheduled_publish_at = None
+        if schedule_cfg and schedule_cfg.enabled and schedule_cfg.start_datetime:
+            try:
+                start_dt = datetime.fromisoformat(schedule_cfg.start_datetime)
+                interval = timedelta(hours=schedule_cfg.interval_hours)
+                publish_dt = start_dt + (interval * video_index)
+                # Convert to ISO format with Z suffix for YouTube API
+                scheduled_publish_at = publish_dt.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+                logger.debug(f"Video {video.filename} scheduled for: {scheduled_publish_at}")
+            except Exception as e:
+                logger.warning(f"Failed to calculate schedule time: {e}")
         
         task = VideoTask(
             # Task identification
@@ -156,6 +175,9 @@ class ProdJsonParser:
             # Upload config
             made_for_kids=upload_cfg.made_for_kids,
             notify_subscribers=upload_cfg.notify_subscribers,
+            
+            # Schedule
+            scheduled_publish_at=scheduled_publish_at,
             
             # Status
             status="pending",

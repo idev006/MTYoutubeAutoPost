@@ -157,6 +157,7 @@ class UploadWorker(QThread):
             privacy=task.privacy,
             made_for_kids=task.made_for_kids,
             notify_subscribers=task.notify_subscribers,
+            publish_at=task.scheduled_publish_at,  # Scheduled publish time
             progress_callback=progress_callback
         )
         

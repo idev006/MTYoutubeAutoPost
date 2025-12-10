@@ -53,6 +53,14 @@ class UploadConfig(BaseModel):
     embeddable: bool = Field(default=True, description="Allow embedding")
 
 
+class ScheduleConfig(BaseModel):
+    """Schedule configuration for timed publishing"""
+    enabled: bool = Field(default=False, description="Enable scheduled publishing")
+    start_datetime: Optional[str] = Field(default=None, description="Start datetime ISO format (e.g. 2024-12-11T10:00:00)")
+    interval_hours: float = Field(default=4.0, description="Hours between each video publish")
+    timezone: str = Field(default="Asia/Bangkok", description="Timezone for scheduling")
+
+
 class ProdJsonSchema(BaseModel):
     """
     Main schema for prod.json file
@@ -63,6 +71,7 @@ class ProdJsonSchema(BaseModel):
     playlist: Optional[PlaylistConfig] = Field(default=None, description="Playlist configuration")
     aff_detail: AffDetail = Field(..., description="Affiliate details")
     upload_config: Optional[UploadConfig] = Field(default_factory=UploadConfig, description="Upload settings")
+    schedule: Optional[ScheduleConfig] = Field(default_factory=ScheduleConfig, description="Schedule settings")
     
     class Config:
         extra = 'ignore'  # Ignore extra fields
@@ -120,6 +129,9 @@ class VideoTask(BaseModel):
     # Action
     action: str = "upload"  # 'upload' or 'update'
     existing_video_id: Optional[str] = None  # For update action
+    
+    # Schedule
+    scheduled_publish_at: Optional[str] = None  # ISO datetime for scheduled publish
     
     def get_title(self) -> str:
         """Generate YouTube title"""
